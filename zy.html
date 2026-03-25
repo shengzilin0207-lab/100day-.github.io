@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOVE</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url("zybj.jpg") center no-repeat;
+    font-family: 'Times New Roman', serif;
+    padding: 20px;
+  }
+
+  .box-wrap {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 50px;
+    grid-row-gap: 50px;
+  }
+
+  .box {
+    width: 350px;
+    height: 350px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .box1 {
+    width: 350px;
+    height: 350px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 8px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .box:hover {
+    transform: scale(1.08);
+  }
+  .box1:hover {
+    transform: scale(1.08);
+  }
+
+  .box.active {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    height: 600px;
+    margin-top: -300px;
+    margin-left: -250px;
+    z-index: 999;
+    transform: none;
+    background: rgba(255,255,255,0.9);
+  }
+
+  .before{
+    display:block;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .box.active .before{
+    display:none;
+  }
+  .after{
+    display:none;
+    padding: 30px;
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .after::-webkit-scrollbar{
+    width: 6px;
+  }
+  .after::-webkit-scrollbar-thumb{
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+  }
+  .box.active .after{
+    display:block;
+    line-height:1.8;
+    font-size:16px;
+  }
+
+  /* 时间盒子默认显示 */
+  .time-box {
+    text-align: center;
+    color: white;
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.4s;
+  }
+  #today-date {
+    font-size: 30px;
+    opacity: 0.9;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  #today-time {
+    font-size: 45px;
+    font-weight: bold;
+    margin-top: 4px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+  /* 100天文字样式 */
+  .centence {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color:#5DB0FF;
+    font-size: 35px;
+    font-weight: bold;
+    line-height: 1.6;
+    text-shadow: 0 0 12px rgba(100, 150, 255, 0.6);
+    display: none;
+    white-space: pre;
+  }
+
+  .bb{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 35px;
+    text-align: center;
+    color: #FEEBEB;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+/* ---------------- 修复：透明线条信封（封口完美贴合底部） ---------------- */
+.line-envelope {
+  position: relative;
+  width: 130px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom:8px;
+}
+.line-envelope .body {
+  position: absolute;
+  width: 100%;
+  height: 70px;
+  border: 2px solid rgba(255,255,255,0.7);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+.line-envelope .flap {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  width: 100%;
+  height: 40px;
+}
+.line-envelope .flap::before {
+  content: '';
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 35px;
+  border-left: 2px solid rgba(255,255,255,0.7);
+  border-right: 2px solid rgba(255,255,255,0.7);
+  border-top: 2px solid rgba(255,255,255,0.7);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: transparent;
+}
+.line-envelope .lock-icon {
+  font-size: 22px;
+  color: rgba(255,255,255,0.85);
+  z-index: 2;
+  text-shadow: 0 0 8px rgba(255,255,255,0.4);
+  transition:all 0.3s;
+}
+
+.env-text {
+  font-size: 18px;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  margin-bottom:12px;
+}
+
+/* 输入框 + 按钮 同一行 */
+.pwd-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  justify-content:center;
+  width:100%;
+}
+
+.pwd-input {
+  padding: 8px 12px;
+  width: 140px;
+  text-align: center;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+.pwd-input::placeholder {
+  color: rgba(255,255,255,0.8);
+}
+
+.pwd-btn {
+  padding: 8px 14px;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  white-space:nowrap;
+}
+.pwd-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+.gothic-player {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 
+        0 0 20px rgba(0, 0, 0, 0.9),
+        0 0 40px rgba(100, 100, 100, 0.3);
+    z-index: 5;
+}
+
+.background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #111;
+    filter: brightness(0.7) contrast(1.2);
+}
+
+.album-cover {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background-image: url('https://pic1.imgdb.cn/item/689770ce58cb8da5c8156f3c.jpg');
+    background-size: cover;
+    background-position: center;
+    box-shadow: 
+        0 0 15px rgba(0, 0, 0, 0.9),
+        0 0 30px rgba(0, 0, 0, 0.7);
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.5s ease;
+    z-index: 5;
+}
+
+.album-cover:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 
+        0 0 20px rgba(0, 0, 0, 0.9),
+        0 0 40px rgba(100, 100, 100, 0.4);
+}
+
+.song-info {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 5;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.song-title {
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.artist {
+    font-size: 14px;
+    letter-spacing: 1px;
+    opacity: 0.8;
+    color: #aaa;
+}
+
+.progress-container {
+    position: absolute;
+    bottom: 80px;
+    left: 40px;
+    right: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    z-index: 5;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #888;
+    transition: width 0.1s linear;
+}
+
+.time-display {
+    position: absolute;
+    bottom: 90px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    z-index: 5;
+}
+
+.gothic-border {
+    position: absolute;
+    top: 0;
+    white-space: nowrap;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    z-index: 4;
+}
+
+.vinyl-lines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: 
+        repeating-radial-gradient(
+            circle at center,
+            rgba(0, 0, 0, 0.1) 0%,
+            rgba(0, 0, 0, 0.1) 5%,
+            transparent 5%,
+            transparent 10%
+        );
+    z-index: 0;
+}
+
+.rotating {
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.controls {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    z-index: 5;
+}
+
+.control-btn {
+    width: 35px;
+    height: 35px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-btn i {
+    color: #fff;
+    font-size: 14px;
+}
+
+.control-btn:hover {
+    background: rgba(100, 100, 100, 0.5);
+    transform: scale(1.1);
+}
+
+.note {
+    position: absolute;
+    background: rgba(255,255,255,0.8);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    font-size: 16px;
+    color: #333;
+    border-top: 3px solid;
+    display: none; 
+    opacity: 0; 
+    transition: opacity 0.5s ease;
+    z-index: 10; 
+}
+.note:nth-child(1) { border-top-color: #409eff; }
+.note:nth-child(2) { border-top-color: #67c23a; }
+.note:nth-child(3) { border-top-color: #e6a23c; }
+.note:nth-child(4) { border-top-color: #f56c6c; }
+.note:nth-child(5) { border-top-color: #909399; }
+.note:nth-child(6) { border-top-color:blue;}
+.note:nth-child(7) { border-top-color:#cec3ff; }
+.note:nth-child(8) { border-top-color: #74b680; }
+.note:nth-child(9) { border-top-color: #dbf8f0; }
+.note:nth-child(10) { border-top-color: #f1e0be; }
+.note:nth-child(11) { border-top-color: #9acefc; }
+.note:nth-child(12) { border-top-color: #e9f2fb; }
+
+.heart {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 24 24' fill='%23ff6b9b'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") no-repeat center;
+    background-size: contain;
+    opacity: 0;
+    animation: float 3s linear infinite;
+    z-index: 10; 
+}
+@keyframes float {
+    0% { opacity: 0; transform: translateY(100vh) scale(0.5); }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-20px) scale(1.2); }
+}
+
+/* 烟花样式 */
+.firework {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: none;
+  z-index: 9999;
+}
+</style>
+</head>
+
+<body>
+<div class="box-wrap">
+  <!-- 时间方块：点击放烟花 + 显示100天文字 -->
+  <div class="box1" id="timeBox">
+    <div class="time-box">
+      <div id="today-date">加载中...</div>
+      <div id="today-time">00:00:00</div>
+    </div>
+    <div class="centence" id="centence">
+Celebrate
+our
+100th day！
+    </div>
+  </div>
+
+  <!-- 播放器方块 → 点击不会放大弹窗！-->
+  <div class="box" id="playerBox">
+    <div class="before">
+      <div class="gothic-player">
+        <div class="background"></div>
+        <div class="vinyl-lines"></div>
+        <div class="gothic-border"></div>
+        <div class="album-cover" id="albumCover"></div>
+        
+        <div class="song-info">
+          <div class="song-title" id="songTitle">Mind Games</div>
+          <div class="artist" id="artist">Sickick</div>
+        </div>
+
+        <div class="time-display">
+          <span id="currentTime">0:00</span>
+          <span id="duration">0:00</span>
+        </div>
+
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="controls">
+          <div class="control-btn" id="prevBtn"><i class="fas fa-step-backward"></i></div>
+          <div class="control-btn" id="playBtn"><i class="fas fa-play" id="playIcon"></i></div>
+          <div class="control-btn" id="nextBtn"><i class="fas fa-step-forward"></i></div>
+        </div>
+
+        <audio id="audio"></audio>
+      </div>
+    </div>
+
+    <div class="after">
+      <h3>正在播放</h3>
+      <p id="afterSong">Mind Games - Sickick</p>
+      <p>点击黑胶封面即可播放/暂停</p>
+    </div>
+  </div>
+
+  <!-- 第三个方块：透明线条信封 + 永久显示输入框 + 验证按钮同行 -->
+  <div class="box" id="letterBox">
+    <div class="before">
+      <div class="line-envelope">
+        <div class="flap"></div>
+        <div class="body"></div>
+        <div class="lock-icon"><i class="fas fa-lock"></i></div>
+      </div>
+      <div class="env-text">神秘信件</div>
+      
+      <div class="pwd-row">
+        <input type="text" class="pwd-input" id="pwdInput" placeholder="请输入：我爱你">
+        <button class="pwd-btn" id="pwdBtn">验证</button>
+      </div>
+    </div>
+
+    <div class="after">
+    
+      <p>To:木白小咪</p>
+      <p>今天是我们的一百天啦，没想到过得这么快，也没想到我居然从来没有正式的跟你说上这么一段话。先祝我们一百天快乐～🥳</p>
+      <p>现在好像越来越喜欢你了，你每天都会来陪我这已经很好了！你真的很值得我去爱你，你是一个很好的人，在你选择主动来找我的时候就已经体现出来了，虽然有时候我也有点生气吧，但后面和你聊着聊着又能把自己哄好了。好吧，其实我在夸自己😎我也确实有点易燃易爆，我也不知道为什么，面对你的时候就特别控制不住…我尽量控制。这是题外话！回归话题！只喜欢你这件事是一直不会变的！一百天两百天三百天…之后就算哪一天真的分开了，我也很喜欢你😭你对我真的真的很好，这句话我很少说，但是面对你，我愿意怎么说。</p>
+      <p>谢谢你！也谢谢缘分让我们相遇，人生只有三万多天，其中能遇到你100天已经很好了🐶打开qq来和你唠嗑已经成为我的习惯了，每天手机解锁80多次，有三分之一的次数是来QQ找你，打开聊天框发呆我也觉得很幸福。可以看出来你对我有多重要了吧！你在我这永远都是最特别的！💕</p>
+      <p>现在可能我真的喜欢上你了吧。我会和朋友说完你到底有多么多么好，过段时间又会不开心的和朋友吐槽说你现在一点都不好，但说来说去，好像全都是关于你，就算在路边看到可爱的猫咪，第一反应也是你，和你聊天就会对着手机屏幕傻笑，在刷到有趣的视频也想分享给你😋你在我这就是一个小宝宝的存在，要用爱来滋养你长大！🤲你也不许自卑什么什么的，我知道小蝴蝶一直都会内耗，那我就会尽量让你没有内耗的机会，你值得我这么毫无保留的来爱你，你一直都值得。</p>
+      <p>好啦，说到底，我真的很喜欢你，我想和你一直走下去，我们会有更多的纪念日吧！不想也不会再把你弄丢了！如果你敢不要我，我就拉你去种香菜！把你不喜欢吃的全喂给你吃😛</p>
+      <br>
+      <p style="text-align:right">🌰</p>
+    </div>
+  </div>
+
+  <!-- 小惊喜 -->
+  <div class="box" id="showPopup">
+    <span class="bb">小惊喜<br>按下我吧</span>
+  </div>
+</div>
+
+<!-- 便签 -->
+<div class="note">我喜欢你！</div>
+<div class="note">你是全世界最好的小咪</div>
+<div class="note">我最爱你了</div>
+<div class="note">你值得我爱</div>
+<div class="note">柏我爱你</div>
+<div class="note">我好想你啊，你在做什么呢</div>
+<div class="note">不要太忙了，照顾好自己</div>
+<div class="note">多喝热水,少熬夜！</div>
+<div class="note">我好喜欢你吧</div>
+<div class="note">100天快乐！</div>
+<div class="note">我们会在一起很久的对吧</div>
+<div class="note">要健康快乐幸福</div>
+
+<script>
+// ==============================
+// 时间方块点击：烟花 + 切换100天文字
+// ==============================
+const timeBox = document.getElementById('timeBox');
+const timeBoxInner = document.querySelector('.time-box');
+const centence = document.getElementById('centence');
+let isShowText = false;
+
+timeBox.onclick = function (e) {
+  launchFireworks(e.clientX, e.clientY);
+  isShowText = !isShowText;
+  if (isShowText) {
+    timeBoxInner.style.display = 'none';
+    centence.style.display = 'block';
+  } else {
+    timeBoxInner.style.display = 'flex';
+    centence.style.display = 'none';
+  }
+};
+
+// 烟花效果函数
+function launchFireworks(x, y) {
+  const colors = ['#fff', '#cce7ff', '#99ccff', '#66b3ff'];
+  for (let i = 0; i < 100; i++) {
+    const firework = document.createElement('div');
+    firework.className = 'firework';
+    firework.style.left = x + 'px';
+    firework.style.top = y + 'px';
+    firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+    document.body.appendChild(firework);
+
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 4;
+    const lifetime = 800 + Math.random() * 400;
+    let opacity = 1;
+    let px = x, py = y;
+
+    const tick = setInterval(() => {
+      px += Math.cos(angle) * speed;
+      py += Math.sin(angle) * speed;
+      opacity -= 0.02;
+      if (opacity <= 0) {
+        clearInterval(tick);
+        firework.remove();
+      }
+      firework.style.left = px + 'px';
+      firework.style.top = py + 'px';
+      firework.style.opacity = opacity;
+    }, 20);
+    setTimeout(() => clearInterval(tick), lifetime);
+  }
+}
+
+// ==============================
+// 信封方块：验证逻辑
+// ==============================
+const letterBox = document.getElementById('letterBox');
+const pwdInput = document.getElementById('pwdInput');
+const pwdBtn = document.getElementById('pwdBtn');
+const lockIcon = document.querySelector('.lock-icon i');
+let isUnlocked = false; 
+
+// 点击盒子：已解锁直接开关弹窗
+letterBox.onclick = function (e) {
+  if(isUnlocked){
+    this.classList.toggle('active');
+  }
+};
+
+// 验证函数
+function check() {
+  const v = pwdInput.value.trim();
+  if(v === "我爱你"){
+    isUnlocked = true;
+    lockIcon.classList.remove('fa-lock');
+    lockIcon.classList.add('fa-unlock');
+    letterBox.classList.add('active');
+  }else{
+    alert("密码错误");
+  }
+}
+
+pwdBtn.onclick = check;
+pwdInput.onkeyup = function(e){
+  if(e.key==='Enter') check();
+};
+
+// ==============================
+// 播放器方块 → 禁止点击弹窗
+// ==============================
+document.querySelectorAll('.box').forEach(item => {
+  if(item.id === 'playerBox'){
+    item.onclick = null;
+  }
+});
+
+// 时间
+function updateDateTime() {
+  let now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth() + 1;
+  let d = now.getDate();
+  let hh = String(now.getHours()).padStart(2, '0');
+  let mm = String(now.getMinutes()).padStart(2, '0');
+  let ss = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById("today-date").innerText = y + "年" + m + "月" + d + "日";
+  document.getElementById("today-time").innerText = hh + ":" + mm + ":" + ss;
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+// 惊喜弹窗
+const showBtn = document.getElementById('showPopup');
+const notes = document.querySelectorAll('.note');
+const body = document.body;
+
+showBtn.onclick = function() {
+  notes.forEach(note => { note.style.display = 'none'; note.style.opacity = 0; });
+  document.querySelectorAll('.heart').forEach(heart => heart.remove());
+
+  notes.forEach((note, index) => {
+    setTimeout(() => {
+      note.style.display = 'block';
+      const x = Math.random() * (window.innerWidth - 200);
+      const y = Math.random() * (window.innerHeight - 100);
+      note.style.left = x + 'px';
+      note.style.top = y + 'px';
+      note.style.width = 200 + Math.random() * 100 + 'px';
+      note.style.zIndex = 10 + index;
+      setTimeout(() => { note.style.opacity = 0.7 + Math.random() * 0.3; }, 100);
+      setTimeout(() => {
+        note.style.opacity = 0;
+        setTimeout(() => { note.style.display = 'none'; }, 500);
+      }, 3000);
+    }, index * 300);
+  });
+
+  function createHearts() {
+    let heartIndex = 0;
+    const heartInterval = setInterval(() => {
+      if (heartIndex >= 20) { clearInterval(heartInterval); return; }
+      const heart = document.createElement('div');
+      heart.className = 'heart';
+      heart.style.left = Math.random() * 100 + 'vw';
+      heart.style.animationDelay = Math.random() * 2 + 's';
+      heart.style.animationDuration = 3 + Math.random() * 2 + 's';
+      body.appendChild(heart);
+      setTimeout(() => { heart.remove(); }, 5000);
+      heartIndex++;
+    }, 200);
+  }
+  createHearts();
+}
+
+// ==============================
+// 音乐播放器
+// ==============================
+const playlist = [
+  {
+    title: "Only One伴奏",
+    artist: "BOA",
+    url: "Onlyone.mp3",
+    cover: "O.jpg"
+  },
+  {
+    title: "爱你但说不出口伴奏",
+    artist: "Karencici",
+    url: "Prrrred - 《爱你但说不出口》Karencici 纯伴奏.mp3",
+    cover: "A.jpg"
+  },
+  {
+    title: "Magnetic伴奏",
+    artist: "ILLIT",
+    url: "盒盒盒盒盒 - Magnetic(伴奏).mp3",
+    cover: "M.jpg"
+  },
+  {
+    title: "Falling U伴奏",
+    artist: "T-ara",
+    url: "浅蚀荒 - Falling U 伴奏.mp3",
+    cover: "F.jpg"
+  }
+];
+
+let currentIndex = 0;
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+const albumCover = document.getElementById('albumCover');
+const progressBar = document.getElementById('progressBar');
+const currentTimeEl = document.getElementById('currentTime');
+const durationEl = document.getElementById('duration');
+
+function loadSong(index) {
+  const song = playlist[index];
+  audio.src = song.url;
+  document.getElementById('songTitle').innerText = song.title;
+  document.getElementById('artist').innerText = song.artist;
+  document.getElementById('afterSong').innerText = song.title + " - " + song.artist;
+  albumCover.style.backgroundImage = `url(${song.cover})`;
+  progressBar.style.width = "0%";
+}
+
+function togglePlay() {
+  if (audio.paused) {
+    audio.play();
+    playIcon.className = 'fas fa-pause';
+    albumCover.classList.add('rotating');
+  } else {
+    audio.pause();
+    playIcon.className = 'fas fa-play';
+    albumCover.classList.remove('rotating');
+  }
+}
+
+function prevSong() {
+  currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+  loadSong(currentIndex); audio.play();
+  playIcon.className = 'fas fa-pause'; albumCover.classList.add('rotating');
+}
+function nextSong() {
+  currentIndex = (currentIndex + 1) % playlist.length;
+  loadSong(currentIndex); audio.play();
+  playIcon.className = 'fas fa-pause'; albumCover.classList.add('rotating');
+}
+
+albumCover.addEventListener('click', togglePlay);
+playBtn.addEventListener('click', togglePlay);
+document.getElementById('prevBtn').addEventListener('click', prevSong);
+document.getElementById('nextBtn').addEventListener('click', nextSong);
+
+audio.addEventListener('timeupdate', () => {
+  const currentTime = audio.currentTime;
+  const duration = audio.duration;
+  progressBar.style.width = `${(currentTime/duration)*100}%`;
+  currentTimeEl.textContent = formatTime(currentTime);
+  if(duration) durationEl.textContent = formatTime(duration);
+});
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s<10?'0':''}${s}`;
+}
+audio.addEventListener('ended', nextSong);
+loadSong(currentIndex);
+</script>
+</body>
+</html>
